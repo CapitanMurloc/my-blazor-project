@@ -5,3 +5,5 @@
 #./dotnet6/dotnet --version
 #./dotnet6/dotnet workload install wasm-tools
 #./dotnet6/dotnet publish -c Release -o output
+echo hello
+echo $?
