@@ -1,0 +1,49 @@
+﻿@page "/camera"
+@inject IJSRuntime Js
+<h3>Camera</h3>
+@inject ILogger<Camera> Logger
+@implements IAsyncDisposable
+
+<h3>Blazor Webcam</h3>
+
+<video id="videoFeed" width="320" height="240" /><canvas class="d-none" id="currentFrame" width="320" height="240" /><br />
+<button class="btn btn-primary mb-3" @onclick="CaptureFrame">Capture Frame</button> <br />
+@if (!string.IsNullOrEmpty(_frameUri))
+{
+    <img src="@_frameUri" />
+}
+
+@code {
+    private IJSObjectReference? _module;
+    private string? _frameUri;
+    private DotNetObjectReference<Camera>? _objRef;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _module = await Js.InvokeAsync<IJSObjectReference>("import", "./webcam.js");
+        await _module.InvokeVoidAsync("startVideo", "videoFeed");
+        Logger.LogInformation("Webcam started");
+    }
+    
+    private async Task CaptureFrame()
+    {
+        _objRef = DotNetObjectReference.Create(this);
+        if (_module != null) await _module.InvokeAsync<string>("getFrame", "videoFeed", "currentFrame", _objRef);
+        Logger.LogInformation("Frame captured");
+    }
+    
+    [JSInvokable]
+    public void ProcessImage(string? imageString)
+    {
+        _frameUri = imageString;
+    }
+    
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            await _module.DisposeAsync();
+        }
+        _objRef?.Dispose();
+    }
+}
